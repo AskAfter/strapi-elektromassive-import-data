@@ -1,0 +1,24 @@
+{
+  "name": "exports-1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start:dev": "cross-env NODE_ENV=development node",
+    "start:prod": "cross-env NODE_ENV=production node"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "adm-zip": "^0.5.15",
+    "aws-sdk": "^2.1677.0",
+    "colors": "^1.4.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}
