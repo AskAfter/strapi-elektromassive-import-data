@@ -1,2 +1,0 @@
-Skipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V
-Skipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V

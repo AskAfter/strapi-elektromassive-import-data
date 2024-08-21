@@ -1,12 +1,14 @@
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-import { uploadMedia } from "../../../shared/uploadMedia/uploadMediaToS3.js";
-import "../../../config/config.js";
-import { products } from "../../../shared/led/videx/products.js";
+import { uploadMedia } from "../shared/uploadMedia/uploadMediaToS3.js";
+import "../config/config.js";
+import { videxS3Endpoints, titanumS3Endpoints } from "../config/constants.js";
+
 import "colors";
-import { ledFolderS3Path } from "../../../config/constants.js";
-import { logToFile } from "../../../utils/logToFile.js";
+
+import { logToFile } from "../utils/logToFile.js";
+import { products } from "../shared/decorative/titanum/products.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +19,7 @@ const addProduct = async (product) => {
   const additionalImagesData = await uploadMedia(
     product.additional_images,
     product.title,
-    ledFolderS3Path
+    titanumS3Endpoints.decorativeFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
   );
 
   if (additionalImagesData.error) {
@@ -49,7 +51,7 @@ const addProduct = async (product) => {
             link,
           })
         ),
-        subcategory: 2, //TODO: change the subcategory id
+        subcategory: 1, //TODO: change the subcategory id
       },
     }),
   });
@@ -61,12 +63,11 @@ const addProduct = async (product) => {
       `The product ${result.data.id} successfully uploded to Stapi.`.blue
     );
   } else {
-    console.log(`${JSON.stringify(result)}`.yellow);
+    console.log(
+      `${JSON.stringify(result)}`.yellow,
+      `${product.part_number}`.red
+    );
   }
 };
 
-products.forEach((product, index) => addProduct(product));
-
-// for (let i = 0; i < 5; i++) {
-//   addProduct(products[i]);
-// }
+products.forEach((product, index) => addProduct(product)); //TODO: CHANGE THE PATH TO UPLOAD THE RIGHT PRODUCTS
