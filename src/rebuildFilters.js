@@ -9,35 +9,10 @@ const axiosInstance = axios.create({
   },
 });
 
-async function fetchAllPaginated(queryName, query) {
-  let allData = [];
-  let start = 0;
-  const limit = 10; // DO NOT CHANGE THE LIMIT
-
-  while (true) {
-    const response = await axiosInstance.post("", {
-      query,
-      variables: { start, limit },
-    });
-
-    const data = response.data.data[queryName].data;
-    if (data.length === 0) break; // No more items to fetch
-
-    allData = [...allData, ...data];
-
-    // console.log(`Fetched ${data.length} items. Total: ${allData.length}`);
-
-    start += limit;
-  }
-
-  console.log(`Total ${queryName} fetched: ${allData.length}`);
-  return allData;
-}
-
 async function fetchProductFilters() {
   const query = `
-    query GetProductFilters($start: Int!, $limit: Int!) {
-      productFilters(pagination: { start: $start, limit: $limit }) {
+    query GetProductFilters {
+      productFilters(pagination: {  limit: -1 }) {
         data {
           id
           attributes {
@@ -51,13 +26,24 @@ async function fetchProductFilters() {
     }
   `;
 
-  return fetchAllPaginated("productFilters", query);
+  try {
+    const response = await axiosInstance.post("", {
+      query,
+    });
+
+    const data = response.data.data.productFilters.data;
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching product filters:", error);
+    throw error;
+  }
 }
 
 async function fetchAllProductTypes() {
   const query = `
-    query GetAllProductTypes($start: Int!, $limit: Int!) {
-      productTypes(pagination: { start: $start, limit: $limit }) {
+    query GetAllProductTypes {
+      productTypes(pagination: {  limit: -1 }) {
         data {
           id
           attributes {
@@ -68,20 +54,31 @@ async function fetchAllProductTypes() {
     }
   `;
 
-  return fetchAllPaginated("productTypes", query);
+  try {
+    const response = await axiosInstance.post("", {
+      query,
+    });
+
+    const data = response.data.data.productTypes.data;
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching product types:", error);
+    throw error;
+  }
 }
 
 async function fetchProductsForType(productTypeId) {
   const query = `
-    query GetProductsForType($id: ID!, $start: Int!, $limit: Int!) {
+    query GetProductsForType($id: ID!) {
       productType(id: $id) {
         data {
           attributes {
-            products(pagination: { start: $start, limit: $limit }) {
+            products(pagination: {  limit: -1 }) {
               data {
                 id
                 attributes {
-                  params {
+                  params(pagination: {  limit: -1 }) {
                     id
                     key
                     value
@@ -94,58 +91,47 @@ async function fetchProductsForType(productTypeId) {
       }
     }
   `;
-
-  let allProducts = [];
-  let start = 0;
-  const limit = 10; // DO NOT CHANGE THE LIMIT
-
-  while (true) {
+  try {
     const response = await axiosInstance.post("", {
       query,
-      variables: { id: productTypeId, start, limit },
+      variables: { id: productTypeId },
     });
 
-    const productType = response.data.data.productType.data;
-    const products = productType.attributes.products.data;
-    if (products.length === 0) break; // No more products to fetch
+    const products =
+      response.data.data.productType.data.attributes.products.data;
 
-    // Fetch all params for each product
-    const productsWithAllParams = await Promise.all(
-      products.map(async (product) => {
-        const allParams = await fetchAllParamsForProduct(product.id);
-        return {
-          ...product,
-          attributes: {
-            ...product.attributes,
-            params: allParams,
-          },
-        };
-      })
+    console.log(
+      `Total products fetched for type ${productTypeId}: ${products.length}`
     );
 
-    allProducts = [...allProducts, ...productsWithAllParams];
-
-    // console.log(`Fetched ${products.length} products. Total: ${allProducts.length}`);
-
-    start += limit;
+    return products;
+  } catch (error) {
+    console.error(
+      `Error fetching products for type ${productTypeId}:`,
+      error.message
+    );
+    throw error;
   }
-
-  console.log(
-    `Total products fetched for type ${productTypeId}: ${allProducts.length}`
-  );
-  return allProducts;
 }
 
-async function fetchAllParamsForProduct(productId) {
-  const query = `
-    query GetAllParamsForProduct($id: ID!, $start: Int!, $limit: Int!) {
-      product(id: $id) {
+async function updateProductFilter(filterId, updatedFilterValues) {
+  const mutation = `
+    mutation UpdateProductFilter(
+      $id: ID!
+      $filterValues: [ComponentFilterValuesTypevaluesInput]
+    ) {
+      updateProductFilter(id: $id, data: { FilterValues: $filterValues }) {
         data {
+          id
           attributes {
-            params(pagination: { start: $start, limit: $limit }) {
-              id
-              key
-              value
+            title
+            FilterValues {
+              product_type {
+                data {
+                  id
+                }
+              }
+              values
             }
           }
         }
@@ -153,46 +139,15 @@ async function fetchAllParamsForProduct(productId) {
     }
   `;
 
-  let allParams = [];
-  let start = 0;
-  const limit = 100; // We can use a higher limit for params
-
-  while (true) {
-    const response = await axiosInstance.post("", {
-      query,
-      variables: { id: productId, start, limit },
-    });
-
-    const params = response.data.data.product.data.attributes.params;
-    if (params.length === 0) break; // No more params to fetch
-
-    allParams = [...allParams, ...params];
-
-    start += limit;
-  }
-
-  return allParams;
-}
-
-async function updateProductFilter(filterId, updatedFilters) {
-  const mutation = `
-    mutation UpdateProductFilter($id: ID!, $filters: JSON) {
-      updateProductFilter(id: $id, data: { filters: $filters }) {
-        data {
-          id
-          attributes {
-            title
-            filters
-          }
-        }
-      }
-    }
-  `;
+  const formattedFilterValues = updatedFilterValues.map((item) => ({
+    product_type: item.productType,
+    values: item.values,
+  }));
 
   try {
     const response = await axiosInstance.post("", {
       query: mutation,
-      variables: { id: filterId, filters: updatedFilters },
+      variables: { id: filterId, filterValues: formattedFilterValues },
     });
     return response.data.data.updateProductFilter.data;
   } catch (error) {
@@ -221,7 +176,7 @@ async function rebuildAllProductFilters() {
       console.log(`\nProcessing ProductFilter ${filter.id}:`);
       console.log("Filter Titles:", filterTitles);
 
-      const updatedFilters = [];
+      const updatedFilterValues = [];
 
       for (const productType of productTypes) {
         const productTypeId = productType.id;
@@ -240,14 +195,14 @@ async function rebuildAllProductFilters() {
         });
 
         if (values.size > 0) {
-          const filterItem = {
+          const filterValue = {
             productType: productTypeId,
-            values: Array.from(values),
+            values: JSON.stringify(Array.from(values)),
           };
-          updatedFilters.push(filterItem);
+          updatedFilterValues.push(filterValue);
 
           console.log("Created Filter Item:");
-          console.log(JSON.stringify(filterItem, null, 2));
+          console.log(JSON.stringify(filterValue, null, 2));
         } else {
           console.log(
             `No matching values found for Product Type ${productTypeId}`
@@ -256,9 +211,9 @@ async function rebuildAllProductFilters() {
       }
 
       console.log("\nUpdated Filters for ProductFilter", filter.id);
-      console.log(JSON.stringify(updatedFilters, null, 2));
+      console.log(JSON.stringify(updatedFilterValues, null, 2));
 
-      await updateProductFilter(filter.id, updatedFilters);
+      await updateProductFilter(filter.id, updatedFilterValues);
       console.log(`Updated ProductFilter ${filter.id} in the database`);
     }
 
