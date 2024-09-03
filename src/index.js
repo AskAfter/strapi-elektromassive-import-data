@@ -3,12 +3,16 @@ import { dirname } from "path";
 
 import { uploadMedia } from "../shared/uploadMedia/uploadMediaToS3.js";
 import "../config/config.js";
-import { videxS3Endpoints, titanumS3Endpoints } from "../config/constants.js";
+import {
+  videxLampsS3Endpoints,
+  titanumS3Endpoints,
+  videxTableLampsS3Endpoints,
+} from "../config/constants.js";
 
 import "colors";
 
 import { logToFile } from "../utils/logToFile.js";
-import { products } from "../shared/decorative/titanum/products.js";
+import { products } from "./products.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,7 +23,7 @@ const addProduct = async (product) => {
   const additionalImagesData = await uploadMedia(
     product.additional_images,
     product.title,
-    titanumS3Endpoints.decorativeFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
+    videxLampsS3Endpoints.ledFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
   );
 
   if (additionalImagesData.error) {
@@ -28,6 +32,11 @@ const addProduct = async (product) => {
     logToFile(message, __dirname);
     return null;
   }
+
+  const paramsObject = product.params.reduce((acc, { key, value }) => {
+    acc[key] = value;
+    return acc;
+  }, {});
 
   const response = await fetch(`${process.env.STRAPI_URL}/api/products`, {
     method: "POST",
@@ -41,11 +50,9 @@ const addProduct = async (product) => {
         title: product.title,
         currency: product.currency,
         retail: product.retail,
-        params: product.params.map((param) => ({
-          key: param.key,
-          value: param.value,
-        })),
+        params: paramsObject,
         image_link: product.image_link,
+        description: product.description,
         additional_images: additionalImagesData.mediaRecords.map(
           ({ link }) => ({
             link,

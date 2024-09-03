@@ -65,8 +65,8 @@ async function fetchAllRelatedProducts(typeId) {
 }
 
 async function updateProductRelations() {
-  const startId = 770; //TODO: change the product ids after creating it
-  const endId = 778; //TODO: change the product ids after creating it
+  const startId = 241; //TODO: change the product ids after creating it
+  const endId = 313; //TODO: change the product ids after creating it
 
   const productIds = Array.from(
     { length: endId - startId + 1 },
@@ -91,7 +91,7 @@ async function updateProductRelations() {
     }
   `;
 
-  const PRODUCT_TYPE_ID = 2; //TODO: change the product type id
+  const PRODUCT_TYPE_ID = 1; //TODO: change the product type id
 
   try {
     // Fetch all current product relations

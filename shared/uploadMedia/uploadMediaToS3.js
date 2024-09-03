@@ -43,6 +43,7 @@ export const uploadMediaToS3 = async (fileBuffer, fileName, folderPath) => {
     Key: `${folderPath}/${fileName}`,
     Body: fileBuffer,
     ContentType: "application/octet-stream",
+    ACL: "public-read",
   };
 
   try {
