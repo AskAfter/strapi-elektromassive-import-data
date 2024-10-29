@@ -77,4 +77,4 @@ const addProduct = async (product) => {
   }
 };
 
-products.forEach((product, index) => addProduct(product)); //TODO: CHANGE THE PATH TO UPLOAD THE RIGHT PRODUCTS
+products.forEach((product, index) => addProduct(product));

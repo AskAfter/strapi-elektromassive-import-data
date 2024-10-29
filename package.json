@@ -12,13 +12,19 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "@google-cloud/translate": "^8.5.0",
+    "@vitalets/google-translate-api": "^9.2.0",
     "adm-zip": "^0.5.15",
     "aws-sdk": "^2.1677.0",
     "axios": "^1.7.4",
     "colors": "^1.4.0",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.4.5",
-    "node-fetch": "^3.3.2"
+    "http-proxy": "^1.18.1",
+    "http-proxy-agent": "^7.0.2",
+    "node-fetch": "^3.3.2",
+    "slugify": "^1.6.6",
+    "transliterate": "^1.0.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.3"

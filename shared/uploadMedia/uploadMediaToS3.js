@@ -10,6 +10,7 @@ const s3 = new AWS.S3({
 });
 
 export const uploadMedia = async (fileUrl, productTitle, folderPath) => {
+  console.log("Uploading file to S3...", fileUrl, productTitle, folderPath);
   const response = await fetch(fileUrl);
   const zipBuffer = Buffer.from(await response.arrayBuffer());
 
