@@ -8,6 +8,7 @@ import {
   titanumS3Endpoints,
   videxTableLampsS3Endpoints,
 } from "../config/constants.js";
+import slugify from "slugify";
 
 import "colors";
 
@@ -38,6 +39,11 @@ const addProduct = async (product) => {
     return acc;
   }, {});
 
+  const slug = slugify(product.title, {
+    lower: true,
+    strict: true,
+  });
+
   const response = await fetch(`${process.env.STRAPI_URL}/api/products`, {
     method: "POST",
     headers: {
@@ -58,6 +64,7 @@ const addProduct = async (product) => {
             link,
           })
         ),
+        slug: slug,
         subcategory: 1, //TODO: change the subcategory id
       },
     }),
