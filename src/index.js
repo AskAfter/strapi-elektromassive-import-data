@@ -21,11 +21,14 @@ const __dirname = dirname(__filename);
 // Post product data to Strapi API
 const addProduct = async (product) => {
   // Upload additional images
-  const additionalImagesData = await uploadMedia(
-    product.additional_images,
-    product.title,
-    videxLampsS3Endpoints.ledFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
-  );
+  let additionalImagesData;
+  if (product.additional_images) {
+    additionalImagesData = await uploadMedia(
+      product.additional_images,
+      product.title,
+      videxLampsS3Endpoints.ledFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
+    );
+  }
 
   if (additionalImagesData.error) {
     const message = `Skipping product due to ZIP file error: ${product.title}`
@@ -59,11 +62,11 @@ const addProduct = async (product) => {
         params: paramsObject,
         image_link: product.image_link,
         description: product.description,
-        additional_images: additionalImagesData.mediaRecords.map(
-          ({ link }) => ({
-            link,
-          })
-        ),
+        additional_images: additionalImagesData
+          ? additionalImagesData.mediaRecords.map(({ link }) => ({
+              link,
+            }))
+          : null,
         slug: slug,
         subcategory: 1, //TODO: change the subcategory id
       },
