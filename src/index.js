@@ -30,7 +30,7 @@ const addProduct = async (product) => {
     );
   }
 
-  if (additionalImagesData.error) {
+  if (additionalImagesData?.error) {
     const message = `Skipping product due to ZIP file error: ${product.title}`
       .red;
     logToFile(message, __dirname);
@@ -66,7 +66,7 @@ const addProduct = async (product) => {
           ? additionalImagesData.mediaRecords.map(({ link }) => ({
               link,
             }))
-          : null,
+          : [],
         slug: slug,
         subcategory: 1, //TODO: change the subcategory id
       },
