@@ -31,19 +31,19 @@ To use this project, you can utilize the provided npm scripts for different envi
 1. For development environment:
 
 ```
-   npm run start:dev -- file-path
+   npm run start:dev -- file-path lang=uk
 ```
 
 2. For production environment:
 
 ```
-   npm run start:prod -- file-path
+   npm run start:prod -- file-path lang=uk
 ```
 
 Example usage:
 
 ```
-   npm run start:dev -- ./src/import-file.json
+   npm run start:dev -- ./src/import-file.json lang=uk
 ```
 
 This command will run the application in development mode and process the file located at `./src/import-file.json`.
