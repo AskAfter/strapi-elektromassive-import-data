@@ -1,10 +1,8 @@
-[2024-08-28T21:02:24.718Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V[39m
-[2024-08-28T21:02:24.729Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V[39m
-[2024-08-30T17:43:43.601Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V[39m
-[2024-08-30T17:43:43.626Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V[39m
-[2024-08-30T17:46:59.138Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V[39m
-[2024-08-30T17:46:59.264Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V[39m
-[2024-09-03T10:29:57.005Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V[39m
-[2024-09-03T10:29:56.992Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V[39m
-[2024-09-03T11:15:58.376Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 12W 4100K 220V[39m
-[2024-09-03T11:15:58.392Z] [31mSkipping product due to ZIP file error: LED лампа VIDEX GX53 8W 4100K 220V[39m
+[2025-04-23T11:52:59.811Z] Skipping product - no valid params object: 1847, 1843, 1839, 1842
+[2025-04-23T11:53:39.771Z] Skipping product - no valid params object: 1847, 1843, 1839, 1842
+[2025-04-23T11:57:10.224Z] Skipping product - no valid params object: 1847, 1843, 1839, 1842
+[2025-04-23T13:29:43.846Z] Error processing product 5072: TypeError: Cannot read properties of null (reading 'data')
+[2025-04-23T14:15:15.036Z] Error processing product 4431: TypeError: Cannot read properties of null (reading 'data')
+[2025-04-23T14:39:46.963Z] Error processing product 5078: TypeError: Cannot read properties of null (reading 'data')
+[2025-04-23T16:44:06.206Z] Error processing product 5065: TypeError: Cannot read properties of null (reading 'data')
+[2025-04-23T18:16:39.930Z] Error processing product 5057: TypeError: Cannot read properties of null (reading 'data')

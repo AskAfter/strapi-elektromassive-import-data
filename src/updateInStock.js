@@ -2,10 +2,8 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import "colors";
 import { logToFile } from "../utils/logToFile.js";
-import { productsToPriceUpdate } from "../data/productsToPriceUpdate.js";
+import { productsToInStockUpdate } from "../data/productsToInStockUpdate.js";
 import "../config/config.js";
-
-// Initialize environment variables
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,12 +53,12 @@ const getProductByPartNumber = async (partNumber) => {
 };
 
 /**
- * Update product price
+ * Update product in_stock value
  * @param {number} productId - Product ID
- * @param {number} newPrice - New price value
+ * @param {number} inStockValue - New in_stock value
  * @returns {Promise<boolean>} - Success status
  */
-const updateProductPrice = async (productId, newPrice) => {
+const updateProductInStock = async (productId, inStockValue) => {
   try {
     const response = await fetch(
       `${process.env.STRAPI_URL}/api/products/${productId}`,
@@ -72,7 +70,7 @@ const updateProductPrice = async (productId, newPrice) => {
         },
         body: JSON.stringify({
           data: {
-            retail: newPrice,
+            in_stock: inStockValue,
           },
         }),
       }
@@ -81,7 +79,7 @@ const updateProductPrice = async (productId, newPrice) => {
     const result = await response.json();
 
     if (!response.ok) {
-      const errorMessage = `Ошибка при обновлении цены продукта: ${JSON.stringify(
+      const errorMessage = `Ошибка при обновлении количества товара: ${JSON.stringify(
         result
       )}`;
       console.log(errorMessage.red);
@@ -90,11 +88,11 @@ const updateProductPrice = async (productId, newPrice) => {
     }
 
     console.log(
-      `Цена обновлена ​​для ID товара ${productId} на ${newPrice}`.green
+      `Количество обновлено для ID товара ${productId} на ${inStockValue}`.green
     );
     return true;
   } catch (error) {
-    const errorMessage = `Ошибка при обновлении цены продукта: ${error.message}`;
+    const errorMessage = `Ошибка при обновлении количества товара: ${error.message}`;
     console.log(errorMessage.red);
     logToFile(errorMessage, __dirname);
     process.exit(1);
@@ -102,24 +100,25 @@ const updateProductPrice = async (productId, newPrice) => {
 };
 
 /**
- * Main function to update prices for products and their localizations
+ * Main function to update in_stock values for products and their localizations
  */
-const updatePrices = async () => {
+const updateInStock = async () => {
   console.log(
-    `Начало обновления цен для ${productsToPriceUpdate.length} товаров`.blue
+    `Начало обновления количества товаров для ${productsToInStockUpdate.length} товаров`
+      .blue
   );
 
-  for (const item of productsToPriceUpdate) {
-    const { part_number, updatedPrice } = item;
+  for (const item of productsToInStockUpdate) {
+    const { part_number, updatedInStock = 10 } = item; // Значение по умолчанию 10, если не указано
 
     console.log(`Обработка продукта с артикулом: ${part_number}`.cyan);
 
     // Get product data
     const product = await getProductByPartNumber(part_number);
 
-    // Update main product price
+    // Update main product in_stock
     const mainProductId = product.id;
-    await updateProductPrice(mainProductId, updatedPrice);
+    await updateProductInStock(mainProductId, updatedInStock);
 
     // Update localizations if they exist
     if (
@@ -133,7 +132,7 @@ const updatePrices = async () => {
 
       for (const localization of product.attributes.localizations.data) {
         const localizationId = localization.id;
-        await updateProductPrice(localizationId, updatedPrice);
+        await updateProductInStock(localizationId, updatedInStock);
       }
     } else {
       console.log(`Для товара не найдено локализаций ${part_number}`.yellow);
@@ -143,12 +142,14 @@ const updatePrices = async () => {
     console.log("---------------------------------------------------");
   }
 
-  console.log("Процесс обновления цен завершен успешно".blue.bold);
+  console.log(
+    "Процесс обновления количества товаров завершен успешно".blue.bold
+  );
 };
 
 // Execute the update process
-updatePrices().catch((error) => {
-  const errorMessage = `Необработанная ошибка в процессе обновления цен: ${
+updateInStock().catch((error) => {
+  const errorMessage = `Необработанная ошибка в процессе обновления количества товаров: ${
     error.stack || error.message
   }`;
   console.error(errorMessage.red.bold);

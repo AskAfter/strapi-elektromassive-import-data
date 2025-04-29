@@ -1,8 +1,7 @@
 import slugify from "slugify";
 import transliterate from "transliterate";
 import axios from "axios";
-
-import { TranslationServiceClient } from "@google-cloud/translate";
+import { products } from "../data/products.js"; // Если products.js экспортирует через: export const products = [...];
 
 import "../config/config.js";
 
@@ -14,35 +13,13 @@ const axiosInstance = axios.create({
   },
 });
 
-const translationClient = new TranslationServiceClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-});
-
-async function translateText(text, targetLanguage) {
-  try {
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-    const location = "global";
-
-    const request = {
-      parent: `projects/${projectId}/locations/${location}`,
-      contents: [text],
-      mimeType: "text/plain",
-      sourceLanguageCode: "uk",
-      targetLanguageCode: targetLanguage,
-    };
-
-    const [response] = await translationClient.translateText(request);
-    return response.translations[0].translatedText;
-  } catch (error) {
-    console.error("Error translating text:", error);
-    return error;
-  }
-}
-
-async function getProduct(productId) {
+/**
+ * Поиск продукта по part_number в Strapi (locale "uk").
+ */
+async function getProductByPartNumber(partNumber) {
   const query = `
-    query GetProduct($id: ID!) {
-      product(id: $id, locale: "uk") {
+    query GetProductByPartNumber($part_number: String!) {
+      products(filters: { part_number: { eq: $part_number } }, locale: "uk") {
         data {
           id
           attributes {
@@ -59,30 +36,46 @@ async function getProduct(productId) {
             subcategory {
               data {
                 id
+                attributes {
+                  localizations(filters: { locale: { eq: "ru" } }) {
+                    data {
+                      id
+                    }
+                  }
+                }
               }
             }
             product_types {
               data {
                 id
+                attributes {
+                  localizations(filters: { locale: { eq: "ru" } }) {
+                    data {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+            product_parameters {
+              data {
+                id
+                attributes {
+                  localizations(filters: { locale: { eq: "ru" } }) {
+                    data {
+                      id
+                    }
+                  }
+                }
               }
             }
             discount
             salesCount
-            cart_items {
-              data {
-                id
-              }
-            }
             description
-            favorite_products {
+            localizations {
               data {
                 id
-              }
-            }
-            localizations{
-              data{
-                id
-                attributes{
+                attributes {
                   locale
                 }
               }
@@ -92,26 +85,37 @@ async function getProduct(productId) {
       }
     }
   `;
-
   try {
+    console.log(
+      `Поиск продукта с part_number: "${partNumber}" в Strapi...`.cyan
+    );
     const response = await axiosInstance.post("", {
       query,
-      variables: { id: productId },
+      variables: { part_number: partNumber },
     });
-    return response.data.data.product.data;
+    const productsFound = response.data.data.products.data;
+    if (!productsFound || productsFound.length === 0) {
+      throw new Error(
+        `Продукт с part_number "${partNumber}" не найден в Strapi.`
+      );
+    }
+    console.log(
+      `Продукт с part_number "${partNumber}" найден. ID: ${productsFound[0].id}`
+        .green
+    );
+    return productsFound[0];
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("Ошибка получения продукта по part_number:", error);
     throw error;
   }
 }
 
-async function updateProduct(productId, translatedData) {
+/**
+ * Обновление (создание локализации) продукта в Strapi.
+ */
+async function updateProduct(productId, localizationData) {
   const mutation = `
-    mutation CreateProductLocalization(
-      $id: ID!
-      $locale: I18NLocaleCode!
-      $data: ProductInput!
-    ) {
+    mutation CreateProductLocalization($id: ID!, $locale: I18NLocaleCode!, $data: ProductInput!) {
       createProductLocalization(id: $id, locale: $locale, data: $data) {
         data {
           id
@@ -122,144 +126,121 @@ async function updateProduct(productId, translatedData) {
       }
     }
   `;
-
   try {
+    console.log(
+      `Обновление продукта с ID: ${productId} для локали "ru"...`.cyan
+    );
     const response = await axiosInstance.post("", {
       query: mutation,
       variables: {
         id: productId,
         locale: "ru",
-        data: translatedData,
+        data: localizationData,
       },
     });
-    return response.data.data.createProductLocalization.data;
+    const localization =
+      response.data.data && response.data.data.createProductLocalization;
+    if (!localization) {
+      throw new Error(
+        `Локализация не создана. Ответ: ${JSON.stringify(response.data)}`
+      );
+    }
+    console.log(`Продукт с ID: ${productId} успешно обновлён.`);
+    return localization.data;
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("Ошибка обновления продукта:", error.response?.data || error);
     throw error;
   }
 }
 
-async function translateProduct(productId) {
+/**
+ * Перевод продукта и создание его русской локализации.
+ */
+async function translateProduct(product) {
   try {
-    console.log(`Translating product ${productId}...`.blue);
-
-    const product = await getProduct(productId);
-
-    const { attributes } = product;
-
-    const hasRussianLocalization = attributes.localizations.data.some(
-      (loc) => loc.attributes.locale === "ru"
+    console.log(
+      `Начинаю перевод продукта с part_number "${product.part_number}"...`
     );
+    const originalProduct = await getProductByPartNumber(product.part_number);
 
+    // Если русская локализация уже существует – пропускаем
+    const hasRussianLocalization =
+      originalProduct.attributes.localizations.data.some(
+        (loc) => loc.attributes.locale === "ru"
+      );
     if (hasRussianLocalization) {
       console.log(
-        `Russian localization already exists for product ${productId}. Skipping.`
-          .yellow
+        `Русская локализация для продукта "${product.part_number}" уже существует. Пропускаю.`
       );
       return;
     }
 
-    const translatedTitle = await translateText(attributes.title, "ru");
-    const translatedDescription = attributes.description
-      ? await translateText(attributes.description, "ru")
+    // Перевод локализуемых полей
+    const translatedTitle = await translateText(product.title, "ru");
+    const translatedDescription = product.description
+      ? await translateText(product.description, "ru")
       : "";
-
-    let translatedParams = {};
-    if (attributes.params) {
-      for (const [key, value] of Object.entries(attributes.params)) {
-        const translatedKey = await translateText(key, "ru");
-
-        const containsLatin = /[a-zA-Z]/.test(value);
-        const translatedValue = containsLatin
-          ? value
-          : await translateText(value, "ru");
-
-        translatedParams[translatedKey] = translatedValue;
-      }
-    }
 
     const translatedSlug = slugify(transliterate(translatedTitle), {
       lower: true,
       strict: true,
     });
 
-    const translatedData = {
+    // Получаем оригинальные поля продукта
+    const original = originalProduct.attributes;
+
+    // Формируем объект локализации, включающий переведённые поля и обязательные поля из оригинала.
+    const localizationData = {
       title: translatedTitle,
-      part_number: attributes.part_number,
-      retail: attributes.retail,
-      image_link: attributes.image_link,
-      currency: attributes.currency,
-      additional_images: attributes?.additional_images,
-      // product_types: attributes.product_types?.data?.map((pt) => pt.id),
-      // subcategory: attributes.subcategory?.data?.id,
-      discount: attributes.discount,
-      // cart_items: attributes.cart_items?.data?.map((ci) => ci.id),
-      salesCount: attributes.salesCount,
-      // favorite_products: attributes.favorite_products?.data?.map((fp) => fp.id),
       description: translatedDescription,
-      params: translatedParams,
       slug: `${translatedSlug}-ru`,
       publishedAt: new Date().toISOString(),
+      part_number: original.part_number,
+      retail: original.retail,
+      image_link: original.image_link,
+      currency: original.currency,
+      product_types:
+        original.product_types?.data?.map(
+          (pt) => pt.attributes?.localizations?.data?.find((loc) => loc.id)?.id
+        ) || [],
+      product_parameters:
+        original.product_parameters?.data?.map(
+          (pp) => pp.attributes?.localizations?.data?.find((loc) => loc.id)?.id
+        ) || [],
+      subcategory:
+        original.subcategory?.data?.attributes?.localizations?.data?.find(
+          (loc) => loc.id
+        )?.id || null,
+      discount: original.discount,
+      salesCount: original.salesCount,
     };
 
-    console.log(`Translated product ${productId} successfully!`.green);
+    if (original.additional_images !== undefined) {
+      localizationData.additional_images = original.additional_images;
+    }
 
-    await updateProduct(productId, translatedData);
-
-    console.log(`Updated product ${productId} with Russian translation`.cyan);
+    console.log(`Продукт "${product.part_number}" успешно переведён!`);
+    await updateProduct(originalProduct.id, localizationData);
+    console.log(
+      `Обновление продукта "${product.part_number}" с русской локализацией прошло успешно.`
+        .magenta
+    );
   } catch (error) {
-    console.error("Error fetching or translating product:", error);
+    console.error("Ошибка при переводе продукта:", error);
+    process.exit(1);
   }
 }
 
 async function translateAllProducts() {
   try {
-    let page = 1;
-    let totalProducts = 0;
-    const pageSize = 20;
-
-    while (true) {
-      console.log(`Fetching page ${page}...`.cyan);
-
-      const query = `
-        query GetProducts($page: Int!, $pageSize: Int!) {
-          products(pagination: { page: $page, pageSize: $pageSize }, locale: "uk") {
-            data {
-              id
-            }
-            meta {
-              pagination {
-                total
-                pageCount
-              }
-            }
-          }
-        }
-      `;
-
-      const response = await axiosInstance.post("", {
-        query,
-        variables: { page, pageSize },
-      });
-
-      const { data, meta } = response.data.data.products;
-
-      for (const product of data) {
-        await translateProduct(product.id);
-        totalProducts++;
-      }
-
-      console.log(`Processed ${totalProducts} products so far...`.cyan);
-
-      if (!meta.pagination.pageCount || page >= meta.pagination.pageCount) {
-        break; // No more pages to process
-      }
-
-      page++;
+    console.log("Начало перевода продуктов из products.js".blue.bold);
+    for (const product of products) {
+      await translateProduct(product);
     }
-    console.log(`All products updated successfully: ${totalProducts}`.green);
+    console.log("Все продукты успешно обновлены.");
   } catch (error) {
-    console.log(error);
+    console.error("Ошибка в процессе перевода продуктов:", error);
+    process.exit(1);
   }
 }
 
