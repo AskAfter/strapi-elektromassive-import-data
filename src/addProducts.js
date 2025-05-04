@@ -93,7 +93,8 @@ const addProduct = async (product) => {
               link,
             }))
           : [],
-        subcategory: 1, //TODO: change the subcategory id
+        subcategory: 15, //TODO: change the subcategory id
+        publishedAt: new Date().toISOString(),
       },
       lang
     );
@@ -111,7 +112,8 @@ const addProduct = async (product) => {
               link,
             }))
           : [],
-        subcategory: 1, //TODO: change the subcategory id
+        subcategory: 15, //TODO: change the subcategory id
+        publishedAt: new Date().toISOString(),
       },
       lang
     );
