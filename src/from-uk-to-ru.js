@@ -2,6 +2,7 @@ import slugify from "slugify";
 import transliterate from "transliterate";
 import axios from "axios";
 import { products } from "../data/products.js"; // Если products.js экспортирует через: export const products = [...];
+import { translateText } from "../../utils/translation.js";
 
 import "../config/config.js";
 
