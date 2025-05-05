@@ -1,10 +1,17 @@
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
 import slugify from "slugify";
 import transliterate from "transliterate";
 import axios from "axios";
-import { products } from "../data/products.js"; // Если products.js экспортирует через: export const products = [...];
-import { translateText } from "../../utils/translation.js";
+import { products } from "../data/products.js";
+import { translateText } from "../utils/translation.js";
 
 import "../config/config.js";
+import { logToFile } from "../utils/logToFile.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const axiosInstance = axios.create({
   baseURL: `${process.env.STRAPI_URL}/graphql`,
@@ -190,6 +197,19 @@ async function translateProduct(product) {
     // Получаем оригинальные поля продукта
     const original = originalProduct.attributes;
 
+    const productParameters =
+      original.product_parameters?.data
+        ?.filter(
+          (pp) =>
+            pp &&
+            pp.attributes?.localizations?.data?.some((loc) => loc && loc.id)
+        )
+        ?.map(
+          (pp) =>
+            pp.attributes?.localizations?.data?.find((loc) => loc && loc.id)?.id
+        )
+        ?.filter((id) => id !== null && id !== undefined) || [];
+
     // Формируем объект локализации, включающий переведённые поля и обязательные поля из оригинала.
     const localizationData = {
       title: translatedTitle,
@@ -204,10 +224,6 @@ async function translateProduct(product) {
         original.product_types?.data?.map(
           (pt) => pt.attributes?.localizations?.data?.find((loc) => loc.id)?.id
         ) || [],
-      product_parameters:
-        original.product_parameters?.data?.map(
-          (pp) => pp.attributes?.localizations?.data?.find((loc) => loc.id)?.id
-        ) || [],
       subcategory:
         original.subcategory?.data?.attributes?.localizations?.data?.find(
           (loc) => loc.id
@@ -215,6 +231,15 @@ async function translateProduct(product) {
       discount: original.discount,
       salesCount: original.salesCount,
     };
+
+    if (productParameters.length > 0) {
+      localizationData.product_parameters = productParameters;
+    } else {
+      logToFile(
+        `Продукт с part_number "${product.part_number}" не имеет локализаций для параметров.`,
+        __dirname
+      );
+    }
 
     if (original.additional_images !== undefined) {
       localizationData.additional_images = original.additional_images;
@@ -234,10 +259,43 @@ async function translateProduct(product) {
 
 async function translateAllProducts() {
   try {
+    const failedProducts = [];
+
     console.log("Начало перевода продуктов из products.js".blue.bold);
     for (const product of products) {
-      await translateProduct(product);
+      try {
+        await translateProduct(product);
+      } catch (error) {
+        failedProducts.push({
+          part_number: product.part_number,
+          error: error.message,
+        });
+
+        const errorMessage = `Не удалось обработать продукт с part_number "${product.part_number}": ${error.message}`;
+        logError(errorMessage);
+      }
     }
+
+    if (failedProducts.length > 0) {
+      console.log(
+        `Количество неудачно обработанных товаров: ${failedProducts.length}`.red
+          .bold
+      );
+      console.log("Список неудачно обработанных товаров:".red);
+      failedProducts.forEach((product) => {
+        console.log(`- Part Number: ${product.part_number}`.red);
+      });
+
+      // Также записываем в лог-файл
+      logError(
+        `Итого не удалось обработать ${
+          failedProducts.length
+        } товаров: ${failedProducts.map((p) => p.part_number).join(", ")}`
+      );
+    } else {
+      console.log("Все продукты успешно обновлены.".green.bold);
+    }
+
     console.log("Все продукты успешно обновлены.");
   } catch (error) {
     console.error("Ошибка в процессе перевода продуктов:", error);
