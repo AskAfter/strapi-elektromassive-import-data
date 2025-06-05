@@ -15,3 +15,11 @@
 [2025-05-05T11:18:05,182] Продукт с part_number "78715" не имеет локализаций для параметров.
 [2025-05-05T11:18:08,974] Продукт с part_number "78716" не имеет локализаций для параметров.
 [2025-05-05T11:18:13,005] Продукт с part_number "78717" не имеет локализаций для параметров.
+[2025-05-05T11:20:17,755] Продукт с part_number "80419" не имеет локализаций для параметров.
+[2025-05-05T11:20:29,807] Продукт с part_number "80420" не имеет локализаций для параметров.
+[2025-05-05T11:20:42,342] Продукт с part_number "80423" не имеет локализаций для параметров.
+[2025-05-05T11:20:52,467] Продукт с part_number "80424" не имеет локализаций для параметров.
+[2025-05-18T12:19:15,231] Error fetching subcategories: request to http://localhost:1337/api/subcategories?locale=uk&pagination[pageSize]=100&populate=category failed, reason: 
+[2025-05-18T12:19:57,434] Error in script execution: Cannot read properties of undefined (reading 'data')
+[2025-05-18T12:21:52,669] Orphaned subcategories:
+ID: 186, Name: undefined

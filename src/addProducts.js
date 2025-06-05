@@ -8,11 +8,6 @@ import {
   updateProduct,
 } from "./services/products.js";
 
-import {
-  videxLampsS3Endpoints,
-  titanumS3Endpoints,
-  videxTableLampsS3Endpoints,
-} from "../config/constants.js";
 import transliterate from "transliterate";
 import slugify from "slugify";
 import { logToFile } from "../utils/logToFile.js";
@@ -40,7 +35,7 @@ const addProduct = async (product) => {
     additionalImagesData = await uploadMedia(
       product.additional_images,
       product.title,
-      videxLampsS3Endpoints.ledFolderS3Path //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
+      "UEC/" //TODO: CHANGE THE PATH TO UPLOAD INTO THE RIGHT FOLDER
     );
   }
 
@@ -93,7 +88,7 @@ const addProduct = async (product) => {
               link,
             }))
           : [],
-        subcategory: 15, //TODO: change the subcategory id
+        subcategory: 59, //TODO: change the subcategory id
         publishedAt: new Date().toISOString(),
       },
       lang
@@ -112,7 +107,7 @@ const addProduct = async (product) => {
               link,
             }))
           : [],
-        subcategory: 15, //TODO: change the subcategory id
+        subcategory: 59, //TODO: change the subcategory id
         publishedAt: new Date().toISOString(),
       },
       lang
