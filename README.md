@@ -49,3 +49,5 @@ Example usage:
 This command will run the application in development mode and process the file located at `./src/import-file.json`.
 
 📝 Note: Replace `file-path` with the actual path to your data file that you want to import.
+
+© 2025 Yevhenii Danoi. Licensed under the MIT License.
