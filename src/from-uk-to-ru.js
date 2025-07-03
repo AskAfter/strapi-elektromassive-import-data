@@ -6,6 +6,7 @@ import transliterate from "transliterate";
 import axios from "axios";
 import { products } from "../data/products.js";
 import { translateText } from "../utils/translation.js";
+import { createProductParameter } from "./services/productParameters.js";
 
 import "../config/config.js";
 import { logToFile } from "../utils/logToFile.js";
@@ -69,9 +70,20 @@ async function getProductByPartNumber(partNumber) {
               data {
                 id
                 attributes {
-                  localizations(filters: { locale: { eq: "ru" } }) {
+                  parameter_value {
                     data {
                       id
+                      attributes {
+                        value
+                        localizations {
+                          data {
+                            id
+                            attributes {
+                              locale
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -197,18 +209,28 @@ async function translateProduct(product) {
     // Получаем оригинальные поля продукта
     const original = originalProduct.attributes;
 
-    const productParameters =
-      original.product_parameters?.data
-        ?.filter(
-          (pp) =>
-            pp &&
-            pp.attributes?.localizations?.data?.some((loc) => loc && loc.id)
-        )
-        ?.map(
-          (pp) =>
-            pp.attributes?.localizations?.data?.find((loc) => loc && loc.id)?.id
-        )
-        ?.filter((id) => id !== null && id !== undefined) || [];
+    // Get Russian parameter values for this product
+    const productParameters = [];
+    if (original.product_parameters?.data) {
+      for (const productParam of original.product_parameters.data) {
+        const parameterValue = productParam.attributes?.parameter_value?.data;
+        if (parameterValue) {
+          // Find the Russian localization of this parameter value
+          const russianParameterValue = parameterValue.attributes?.localizations?.data?.find(
+            (loc) => loc.attributes?.locale === "ru"
+          );
+          
+          if (russianParameterValue) {
+            // Check if there's already a Russian product parameter for this value
+            // We need to create a new product parameter linking the Russian product to the Russian parameter value
+            // For now, we'll collect the Russian parameter value IDs and create the links after product creation
+            productParameters.push(russianParameterValue.id);
+          } else {
+            console.log(`⚠ Warning: No Russian localization found for parameter value "${parameterValue.attributes?.value}" (ID: ${parameterValue.id})`.yellow);
+          }
+        }
+      }
+    }
 
     // Формируем объект локализации, включающий переведённые поля и обязательные поля из оригинала.
     const localizationData = {
@@ -232,25 +254,41 @@ async function translateProduct(product) {
       salesCount: original.salesCount,
     };
 
-    if (productParameters.length > 0) {
-      localizationData.product_parameters = productParameters;
-    } else {
-      logToFile(
-        `Продукт с part_number "${product.part_number}" не имеет локализаций для параметров.`,
-        __dirname
-      );
-    }
+    // Don't include product_parameters in localizationData as it's a relation
+    // We'll create the parameter links after the product localization is created
 
     if (original.additional_images !== undefined) {
       localizationData.additional_images = original.additional_images;
     }
 
     console.log(`Продукт "${product.part_number}" успешно переведён!`);
-    await updateProduct(originalProduct.id, localizationData);
+    const russianProduct = await updateProduct(originalProduct.id, localizationData);
     console.log(
       `Обновление продукта "${product.part_number}" с русской локализацией прошло успешно.`
         .magenta
     );
+
+    // Now create the parameter links for the Russian product
+    if (productParameters.length > 0) {
+      console.log(`Создаём ${productParameters.length} параметров для русского продукта...`.cyan);
+      
+      for (const parameterValueId of productParameters) {
+        try {
+          await createProductParameter(russianProduct.id, parameterValueId, "ru");
+          console.log(`✓ Параметр ${parameterValueId} привязан к продукту ${russianProduct.id}`.green);
+        } catch (error) {
+          console.error(`✗ Ошибка при привязке параметра ${parameterValueId}:`.red, error.message);
+        }
+      }
+      
+      console.log(`✓ Все параметры для продукта "${product.part_number}" успешно привязаны!`.green.bold);
+    } else {
+      console.log(`⚠ Продукт "${product.part_number}" не имеет русских локализаций для параметров.`.yellow);
+      logToFile(
+        `Продукт с part_number "${product.part_number}" не имеет локализаций для параметров.`,
+        __dirname
+      );
+    }
   } catch (error) {
     console.error("Ошибка при переводе продукта:", error);
     process.exit(1);

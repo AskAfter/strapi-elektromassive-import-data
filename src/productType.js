@@ -56,8 +56,8 @@ async function fetchAllRelatedProducts(typeId) {
 }
 
 async function updateProductRelations() {
-  const startId = 1886; //TODO: change the product ids after creating it
-  const endId = 1892; //TODO: change the product ids after creating it
+  const startId = 16919; //TODO: change the product ids after creating it
+  const endId = 16923; //TODO: change the product ids after creating it
 
   const productIds = Array.from(
     { length: endId - startId + 1 },

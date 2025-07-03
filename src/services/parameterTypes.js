@@ -149,7 +149,7 @@ async function createParameterTypeLocalization(
   if (cleanString(name) === "Кількість жив") {
     translatedName = "Количество жил";
   } else {
-    translatedName = await translateText(name);
+    translatedName = await translateText(name, "ru");
     translatedName = cleanKey(translatedName);
   }
 
