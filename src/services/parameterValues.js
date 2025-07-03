@@ -117,7 +117,7 @@ async function createParameterValueLocalization(
   ) {
     translatedValue = value;
   } else {
-    translatedValue = await translateText(value);
+    translatedValue = await translateText(value, "ru");
     translatedValue = cleanString(translatedValue);
   }
 
